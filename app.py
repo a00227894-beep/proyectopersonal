@@ -11,49 +11,134 @@ import plotly.express as px
 # Estilos CSS personalizados
 st.markdown("""
 <style>
-/* Estilo del Sidebar */
+
+/* ========== SIDEBAR ========== */
+
+/* Fondo del sidebar */
 [data-testid="stSidebar"] {
-background-color: #3054BF;
+    background-color: #002663;
 }
-/* Estilo de los textos del Sidebar */
-[data-testid="stSidebar"] * {
-color: white !important;
+
+/* Título "Filters" y labels en blanco */
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] h4,
+[data-testid="stSidebar"] h5,
+[data-testid="stSidebar"] h6,
+[data-testid="stSidebar"] label {
+    color: #FFFFFF !important;
 }
-/* Color de fondo para la barra superior que esta arriba de la pagina
-principal */
+
+/* OJO: quitamos el wildcard que rompía todo
+   (NO pongas [data-testid="stSidebar"] * { ... }) */
+
+
+/* ========== SELECTS / MULTISELECTS (sidebar + main) ========== */
+
+/* Caja donde se ven las opciones seleccionadas */
+div[data-baseweb="select"] > div {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+}
+
+/* Texto que escribes en el select */
+div[data-baseweb="select"] input {
+    color: #000000 !important;
+}
+
+/* Menú desplegable */
+ul[role="listbox"] {
+    background-color: #FFFFFF !important;
+}
+
+ul[role="listbox"] li {
+    color: #000000 !important;
+}
+
+/* Tags del multiselect */
+[data-baseweb="tag"] {
+    background-color: #ff4b4b !important;  /* tus chips rojos */
+    color: #FFFFFF !important;
+}
+
+
+/* ========== LAYOUT GENERAL ========== */
+
+/* Barra superior */
 div[data-testid="stToolbar"] {
-background-color: #cfcfcf;
+    background-color: ##34445e;
 }
-/* Estilo de la página principal */
-.main {
-background-color: #cfcfcf;
+
+/* Fondo general */
+.stApp,
+.main,
+.block-container {
+    background-color: ##34445e;
 }
-/* Todo el texto de la página principal será en blanco */
-.main * {
-color: white !important;
+
+/* Encabezados en la página principal */
+section.main h1,
+section.main h2,
+section.main h3,
+section.main h4,
+section.main h5,
+section.main h6 {
+    color: #033866 !important;
 }
-/* Estilo de las métricas */
+
+/* Texto normal (markdown) en blanco */
+section.main [data-testid="stMarkdown"] {
+    color: #FFFFFF !important;
+}
+
+
+/* ========== DATAFRAMES Y TABLAS ========== */
+
+[data-testid="stDataFrame"] {
+    background-color: #FFFFFF !important;
+    border-radius: 8px;
+}
+
+[data-testid="stDataFrame"] div[role="grid"] {
+    background-color: #FFFFFF !important;
+}
+
+[data-testid="stDataFrame"] div[role="grid"] * {
+    color: #ffffff !important;
+}
+
+[data-testid="stTable"] table {
+    background-color: #FFFFFF !important;
+}
+
+[data-testid="stTable"] th,
+[data-testid="stTable"] td {
+    color: #ffffff !important;
+}
+
+/* Tablas de st.table */
+[data-testid="stTable"] table,
+[data-testid="stTable"] th,
+[data-testid="stTable"] td {
+  background-color: #ffffff !important;
+  color: #222222 !important;
+}
+
+/* ========== MÉTRICAS ========== */
+
 [data-testid="stMetricValue"] {
-color: white !important;
+    color: #FFFFFF !important;
 }
-/* Estilo de las etiquetas de las métricas */
+
 [data-testid="stMetricLabel"] {
-color: #172140 !important;
+    color: #FFFFFF!important;
 }
-/* Encabezados */
-h1, h2, h3, h4, h5, h6 {
-color: #033866 !important;
-}
-/* Estilo del Selectbox */
-.stSelectbox label {
-color: white !important;
-}
-/* Estilo de la sección principal */
-.stApp {
-background-color:#cfcfcf;
-}
+
 </style>
 """, unsafe_allow_html=True)
+
+
 
 # Configuración de la página
 st.set_page_config(page_title="2024 LoL Championship Player Stats & Swiss Stage", layout="wide",
@@ -79,25 +164,25 @@ except Exception as e:
 # Sidebar filters
 st.sidebar.header("Filters")
 
-  #1
-team_select_filter = st.sidebar.multiselect("Select Team: ", lol["TeamName"].unique(), default= lol["TeamName"].unique())
 
-  #2
+  #1
 win_rate_min_val = float(lol["Win rate"].min())
 win_rate_max_val = float(lol["Win rate"].max())
 win_rate_slider = st.sidebar.slider("Select Win Rate: ", win_rate_min_val, win_rate_max_val, (win_rate_min_val, win_rate_max_val))
 
-  #3
-if "Country" in lol.columns:
-    countries = st.sidebar.multiselect(
-        "Country",
-        options=sorted(lol["Country"].dropna().unique()),
-        default= lol["Country"].dropna().unique()
-    )
-else:
-    countries = []
+  #2
+countries = sorted(lol["Country"].unique())
+country_choice = st.sidebar.selectbox(
+    "Select Country:",
+    options=["All Countries"] + countries
+)
 
-filtered_lol_df = lol[(lol["TeamName"].isin(team_select_filter)) & (lol["Win rate"].between(win_rate_slider[0], win_rate_slider[1])) & (lol["Country"].isin(countries)) ]
+if country_choice == "All Countries":
+    c_select_filter = countries
+else:
+    c_select_filter = [country_choice]
+
+filtered_lol_df = lol[(lol["Win rate"].between(win_rate_slider[0], win_rate_slider[1])) & (lol["Country"].isin(c_select_filter)) ]
 
 # Check filters
 if filtered_lol_df.empty:
@@ -106,7 +191,7 @@ if filtered_lol_df.empty:
 
 # Metrics
 st.header('Most important Metrics')
-met_col1, met_col2, met_col3, met_col4, met_col5 = st.columns(5)
+met_col1, met_col2, met_col3, met_col4, met_col5, met_col6 = st.columns(6)
 
 with met_col1:
   total_avgk = filtered_lol_df['Avg kills'].mean()
@@ -127,6 +212,10 @@ with met_col4:
 with met_col5:
   total_avgw = filtered_lol_df['Win rate'].mean() * 100
   st.metric('Avg Win rate %', f'{total_avgw:,.1f}%')
+
+with met_col6:
+  numplayers = filtered_lol_df['PlayerName'].nunique()
+  st.metric('Num. players', f'{numplayers:,}')
 
 # Columns definition
 def get_column_definitions() -> pd.DataFrame:
@@ -266,7 +355,7 @@ def get_column_definitions() -> pd.DataFrame:
     return pd.DataFrame(data, columns=["Column", "Description", "Type"])
 
 # Tabs
-tab4, tab0, tab1, tab2, tab3 = st.tabs(['Column Definitions', 'EDA', 'Team Data', 'Team Combat Analysis', 'Performance Evolution'])
+tab5, tab1, tab2, tab3, tab4, tab0 = st.tabs(['PlayerStats', 'Team Data', 'Team Combat Analysis', 'Performance', 'Column Definitions', 'EDA'])
 
 with tab4:
     st.subheader("Column Definitions")
@@ -309,13 +398,14 @@ with tab1:
 
   top_m = grouped.nlargest(10, metric_col)
   fig = px.bar(
-      top_m,
-      x=group_col,
-      y=metric_col,
-      color=group_col,
-      title=f"Top 10 {group_col} by {metric_col}",
-      text=metric_col,
-  )
+    top_m,
+    x=group_col,
+    y=metric_col,
+    color=metric_col,
+    color_continuous_scale="Blues",
+    title=f"Top 10 {group_col} by {metric_col}",
+    text=metric_col,
+)
 
   fig.update_traces(
       texttemplate='%{text:.2f}',
@@ -339,7 +429,7 @@ with tab2:
   gra2_col1, gra2_col2 = st.columns(2)
 
   with gra2_col1:
-      top_n_teams = st.slider("Select top N teams to show", 3, 20, 10, key='tab2_top_n_teams')
+      top_n_teams = st.slider("Select top N teams to show", 3, 16, 10, key='tab2_top_n_teams')
   with gra2_col2:
       team_metric = st.selectbox(
           "Order by",
@@ -371,7 +461,7 @@ with tab2:
       orientation="h",
       title=f"Top {top_n_teams} Teams by {team_metric}",
       color=team_metric,
-      color_continuous_scale="Sunset"
+      color_continuous_scale="Blues"
   )
 
   fig_teams.update_layout(
@@ -384,7 +474,7 @@ with tab2:
 
 with tab3:
 #3rd graph
-  st.subheader("Performance Evolution by Role / Team")
+  st.subheader("Performance by Role / Team")
 
   gra1_col1, gra1_col2 = st.columns(2)
 
@@ -424,3 +514,129 @@ with tab3:
   fig_time.update_layout(hovermode='x unified')
 
   st.plotly_chart(fig_time, use_container_width=True)
+
+#PlayerStats
+with tab5:
+    st.subheader("Player Radar Stats")
+
+    if filtered_lol_df.empty:
+        st.warning("No data available for the selected filters.")
+    else:
+        # 1) Selectores de equipo y jugador
+        col_team, col_player = st.columns(2)
+
+        with col_team:
+            teams_available = sorted(filtered_lol_df["TeamName"].unique())
+            selected_team = st.selectbox(
+                "Select team:",
+                options=["All teams"] + teams_available,
+                key="radar_team"
+            )
+
+        if selected_team == "All teams":
+            df_players = filtered_lol_df.copy()
+        else:
+            df_players = filtered_lol_df[filtered_lol_df["TeamName"] == selected_team]
+
+        with col_player:
+            players_available = sorted(df_players["PlayerName"].unique())
+            selected_player = st.selectbox(
+                "Select player:",
+                options=players_available,
+                key="radar_player"
+            )
+
+        player_df = df_players[df_players["PlayerName"] == selected_player]
+
+        if player_df.empty:
+            st.warning("No data for selected player.")
+        else:
+            st.markdown(
+                f"### Team: **{player_df['TeamName'].iloc[0]}** – Player: **{selected_player}**"
+            )
+
+            # 2) Métricas para el radar
+            metrics_config = [
+                ("Avg kills", "Avg kills"),
+                ("Avg deaths", "Avg deaths (lower is better)"),
+                ("GoldPerMin", "Gold per min"),
+                ("Avg assists", "Avg assists"),
+                ("DamagePercent", "DMG%"),
+            ]
+
+            metrics_config = [
+                (col, label)
+                for col, label in metrics_config
+                if col in filtered_lol_df.columns
+            ]
+
+            if not metrics_config:
+                st.error("No metrics found to build radar chart.")
+            else:
+                cols = [c for c, _ in metrics_config]
+
+                # 3) Normalización 0–1
+                stats_all = lol[cols].astype(float)
+                mins = stats_all.min()
+                maxs = stats_all.max()
+                denom = maxs - mins
+                denom[denom == 0] = 1e-9
+
+                player_vals = player_df.iloc[0][cols].astype(float)
+                norm_vals = (player_vals - mins) / denom
+
+                # Invertimos deaths: menos muertes = mejor
+                if "Avg deaths" in norm_vals.index:
+                    norm_vals["Avg deaths"] = 1 - norm_vals["Avg deaths"]
+
+                values = norm_vals.values
+                labels = [label for _, label in metrics_config]
+
+                radar_df = pd.DataFrame({
+                    "theta": labels,
+                    "r": values
+                })
+
+                # 4) Radar tipo segunda imagen (line_polar)
+                fig = px.line_polar(
+                    radar_df,
+                    r="r",
+                    theta="theta",
+                    line_close=True
+                )
+
+                fig.update_traces(
+                    fill="toself",
+                    fillcolor="rgba(48, 84, 191, 0.30)",
+                    line_color="rgba(48, 84, 191, 1)",
+                    line_width=3
+                )
+
+                fig.update_layout(
+                    polar=dict(
+                        radialaxis=dict(
+                            visible=True,
+                            range=[0, 1],
+                            gridcolor="#dde3f5",
+                            gridwidth=1,
+                            linecolor="#c0c8e0",
+                            tickfont=dict(color="#7a869a"),
+                        ),
+                        angularaxis=dict(
+                            tickfont=dict(color="#555555", size=12)
+                        ),
+                        bgcolor="#f4f6ff"
+                    ),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    showlegend=False,
+                    margin=dict(l=40, r=40, t=60, b=40),
+                    title=dict(
+                        text=f"{selected_player} – normalized stats",
+                        x=0.5,
+                        xanchor="center",
+                        font=dict(size=16, color="#033866")
+                    ),
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
